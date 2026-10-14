@@ -1,0 +1,56 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Adina's Hub</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Adina's Hub">
+<meta name="theme-color" content="#2d4a3e">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="manifest" href="manifest.json">
+<style>
+  :root{--bg:#f6f4f1;--card:#fff;--text:#1f1d1a;--muted:#6b665f;--ink:#2d4a3e;--line:#e2ddd6}
+  @media (prefers-color-scheme:dark){:root{--bg:#151614;--card:#1f211e;--text:#ecebe7;--muted:#a3a19a;--ink:#7fb59c;--line:#33362f}}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+  main{max-width:380px;margin:0 auto;padding:max(48px,env(safe-area-inset-top)) 16px;display:grid;gap:14px}
+  h1{margin:0;font:600 26px Georgia,serif}
+  p{margin:0;color:var(--muted);line-height:1.45}
+  input{font:600 24px system-ui;letter-spacing:.3em;text-align:center;padding:14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--text);width:100%;box-sizing:border-box}
+  button{font:600 17px system-ui;padding:15px;border-radius:12px;border:0;background:var(--ink);color:#fff;cursor:pointer;width:100%}
+  .small{font-size:13px;text-align:center}
+  .small a{color:var(--muted)}
+  [hidden]{display:none!important}
+</style></head><body><main>
+  <h1>Adina's Hub</h1>
+  <p id="msg">Finding your hub…</p>
+  <form id="login" hidden style="display:grid;gap:12px">
+    <input id="code" type="password" inputmode="numeric" autocomplete="current-password" required>
+    <button type="submit">Sign in</button>
+    <p class="small">Your code is remembered on this device only, so next time it's one tap.</p>
+  </form>
+  <p class="small" id="again" hidden><a href="#" id="forget">Use a different code</a></p>
+</main>
+<script>
+  // The hub runs on a private computer behind a tunnel whose address can change after a
+  // restart. That computer publishes the current address to tunnel.json; this page stays put.
+  // The code is kept only in this browser, never in this public page.
+  const $ = id => document.getElementById(id);
+  const store = {
+    get() { try { return localStorage.getItem('ah_code') || ''; } catch (e) { return ''; } },
+    set(v) { try { localStorage.setItem('ah_code', v); } catch (e) {} },
+    del() { try { localStorage.removeItem('ah_code'); } catch (e) {} }
+  };
+  let base = '';
+  function go() {
+    const code = store.get();
+    if (!code) { $('login').hidden = false; $('again').hidden = true; $('msg').textContent = 'Enter your access code once.'; return; }
+    $('msg').textContent = 'Opening your hub…'; $('again').hidden = false;
+    location.replace(base + '/?key=' + encodeURIComponent(code) + location.hash);
+  }
+  $('login').onsubmit = e => { e.preventDefault(); store.set($('code').value.trim()); go(); };
+  $('forget').onclick = e => { e.preventDefault(); store.del(); $('code').value = ''; go(); };
+  fetch('tunnel.json?t=' + Date.now(), {cache:'no-store'})
+    .then(r => r.json())
+    .then(d => { base = (d.url || '').replace(/\/+$/, ''); if (!base) throw 0; go(); })
+    .catch(() => { $('msg').textContent = 'The hub is restarting. Please try again in a minute.'; });
+</script>
+</body></html>
